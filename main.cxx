@@ -45,19 +45,19 @@ int main() {
                 //std::cout<<"DIG0 bank found"<<std::endl;
                 cygnolib::PMTData pmts = daq_dig2PMTData(event, &dgh);
                 
-                std::vector<std::vector<std::vector<uint16_t>>> fastwfs = pmts.GetWaveforms(1742);
-                std::vector<std::vector<std::vector<uint16_t>>> slowwfs = pmts.GetWaveforms(1720);
+                std::vector<std::vector<std::vector<uint16_t>>> *fastwfs = pmts.GetWaveforms(1742);
+                std::vector<std::vector<std::vector<uint16_t>>> *slowwfs = pmts.GetWaveforms(1720);
                 
                 std::cout<<"====== fast ====="<<std::endl;
                 int ev = 0;
                 int ch = 1;
                 for(int i =0; i<10; i++) {
-                    std::cout<<fastwfs[ev][ch][i]<<", ";
+                    std::cout<<(*fastwfs)[ev][ch][i]<<", ";
                 }
                 std::cout<<std::endl;
                 std::cout<<"====== slow ====="<<std::endl;
                 for(int i =0; i<10; i++) {
-                    std::cout<<slowwfs[ev][ch][i]<<", ";
+                    std::cout<<(*slowwfs)[ev][ch][i]<<", ";
                 }
                 std::cout<<std::endl;
                 

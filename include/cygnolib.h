@@ -70,7 +70,7 @@ namespace cygnolib {
         
         std::list<std::vector<std::vector<std::vector<uint16_t>>>> data;
         
-        std::vector<std::vector<std::vector<uint16_t>>> GetWaveforms(int board_model);
+        std::vector<std::vector<std::vector<uint16_t>>> *GetWaveforms(int board_model);
         
     private:
         DGHeader *fDGH;

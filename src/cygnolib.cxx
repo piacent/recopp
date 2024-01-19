@@ -197,7 +197,7 @@ namespace cygnolib {
     }
     PMTData::~PMTData(){
     }
-    std::vector<std::vector<std::vector<uint16_t>>> PMTData::GetWaveforms(int board_model) {
+    std::vector<std::vector<std::vector<uint16_t>>> *PMTData::GetWaveforms(int board_model) {
         int nboards = fDGH->nboards;
         bool board_found = false;
         int board_index = -1;
@@ -217,7 +217,7 @@ namespace cygnolib {
         auto data_front = data.begin();
         std::advance(data_front, board_index);
         
-        return (*data_front);
+        return &(*data_front);
     }
     
     
