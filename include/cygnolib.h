@@ -72,6 +72,8 @@ namespace cygnolib {
         
         std::vector<std::vector<std::vector<uint16_t>>> *GetWaveforms(int board_model);
         
+        //void ApplyDRS4Corrections(std::vector<float> *channels_offsets);
+        
     private:
         DGHeader *fDGH;
     };
