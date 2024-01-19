@@ -11,7 +11,7 @@
 int main() {
     
     //open midas file
-    std::string filename="/data11/cygno/piacenst/stefano/recocpp/debug/run35138.mid.gz";
+    std::string filename="/home/piacenst/cygno_workspace/stefano/recopp/debug/run35138.mid.gz";
     
     //reading PMT readout infos from midas file
     std::vector<float> channels_offsets;
@@ -38,17 +38,17 @@ int main() {
             std::cout<<"Reading evt "<<counter<<std::endl;
             //std::cout<<"DGH0 bank found"<<std::endl;
             cygnolib::DGHeader dgh = cygnolib::daq_dgh2head(event);
-            dgh.Print();
+            //dgh.Print();
             
         
             if(dig_found) {
                 //std::cout<<"DIG0 bank found"<<std::endl;
-                cygnolib::PMTData pmts = daq_dig2PMTData(event, dgh);
+                cygnolib::PMTData pmts = daq_dig2PMTData(event, &dgh);
                 
                 std::vector<std::vector<std::vector<uint16_t>>> fastwfs = pmts.GetWaveforms(1742);
                 std::vector<std::vector<std::vector<uint16_t>>> slowwfs = pmts.GetWaveforms(1720);
                 int kk =0;
-                /*std::cout<<"====== fast ====="<<std::endl;
+                std::cout<<"====== fast ====="<<std::endl;
                 int ev = 0;
                 int ch = 1;
                 for(int i =0; i<10; i++) {
@@ -59,7 +59,7 @@ int main() {
                 for(int i =0; i<10; i++) {
                     std::cout<<slowwfs[ev][ch][i]<<", ";
                 }
-                std::cout<<std::endl;*/
+                std::cout<<std::endl;
                 
             }
             
@@ -68,9 +68,6 @@ int main() {
             cygnolib::Picture pic=cygnolib::daq_cam2pic(event, "fusion");
             //pic.Print(4,4); // print upper left 4x4 angle
             //pic.SavePng("/data11/cygno/piacenst/stefano/cygnocpp/debug/test.png");
-            
-            //reader->Close();
-            //break;
             
             counter ++;
         }

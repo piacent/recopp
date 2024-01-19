@@ -62,43 +62,20 @@ namespace cygnolib {
         
     };
     
-    // ======= to decide =========
-    class Board {
-    public:
-        Board(DGHeader DGH, std::vector<uint16_t> rawwaveforms, int board_model);
-        ~Board();
-        
-        std::vector<std::vector<std::vector<uint16_t>>> GetData();
-        
-    private:
-        DGHeader fDGH;
-        int fboard_model;
-        int fnchannels;
-        int fnsamples;
-        int fnwaveforms;
-        //....
-        std::vector<std::vector<std::vector<uint16_t>>> fData;
-    
-    };
-    
     class PMTData {
     public:
         
-        PMTData(DGHeader DGH, std::vector<uint16_t> rawwaveforms);
+        PMTData(DGHeader *DGH, std::vector<uint16_t> rawwaveforms);
         ~PMTData();
         
-        static std::list<Board> data;
+        std::list<std::vector<std::vector<std::vector<uint16_t>>>> data;
         
         std::vector<std::vector<std::vector<uint16_t>>> GetWaveforms(int board_model);
         
     private:
-        DGHeader fDGH;
+        DGHeader *fDGH;
     };
     
-    // Mettere insieme PMTData e Board --> togliere copia di DGH etc
-    
-    
-    // ======= to decide =========
     
     
     void foo();
@@ -112,8 +89,8 @@ namespace cygnolib {
     void InitializePMTReadout(std::string filename, bool *DRS4correction, std::vector<float> *channels_offsets);
     // implementazione correzione to-do
     Picture  daq_cam2pic(TMidasEvent &event, std::string cam_model = "fusion");
-    DGHeader daq_dgh2head(TMidasEvent &event); //Header
-    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader DGH);
+    DGHeader daq_dgh2head(TMidasEvent &event);
+    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader *DGH);
     
     
 }

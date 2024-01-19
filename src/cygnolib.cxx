@@ -153,57 +153,15 @@ namespace cygnolib {
         }
     }
     
-    Board::Board(DGHeader DGH, std::vector<uint16_t> rawwaveforms, int board_model):
-    fDGH(DGH), fboard_model(board_model) {
-        
-        int nboards = fDGH.nboards;
-        for(int i=0;i<nboards;i++) {
-            if(fDGH.board_model[i]==fboard_model){
-                fnchannels  = fDGH.nchannels[i];
-                fnsamples   = fDGH.nsamples[i];
-                fnwaveforms = fDGH.nwaveforms[i];
-            }
-        }
-        
-        if(rawwaveforms.size() != fnchannels*fnsamples*fnwaveforms) {
-            throw std::runtime_error("cygnolib::Board::Board: input for board model "+
-                                     std::to_string(fboard_model)+
-                                     " has wrong dimensions.");
-        }
-        
-        std::vector<std::vector<std::vector<uint16_t>>> tmp(fnwaveforms,
-                                                            std::vector<std::vector<uint16_t>>(fnchannels, 
-                                                            std::vector<uint16_t>(fnsamples, 0)
-                                                            )
-                                                           );
-        
-        for(int evt=0; evt<fnwaveforms; evt++) {
-            for (int ch=0; ch<fnchannels; ch++) {
-                for (int samp=0; samp<fnsamples; samp++) {
-                    int index = evt*fnchannels*fnsamples + ch*fnsamples + samp;
-                    tmp[evt][ch][samp] = rawwaveforms[index];
-                }
-            }
-        }
-        
-        fData = tmp;
-        
-    }
-    Board::~Board(){
-    }
-    std::vector<std::vector<std::vector<uint16_t>>> Board::GetData() {
-        return fData;
-    }
     
-    std::list<Board> PMTData::data; 
-    PMTData::PMTData(DGHeader DGH, std::vector<uint16_t> rawwaveforms): fDGH(DGH){
-        int nboards = fDGH.nboards;
+    PMTData::PMTData(DGHeader *DGH, std::vector<uint16_t> rawwaveforms): fDGH(DGH){
+        int nboards = fDGH->nboards;
         
         int baseidx = 0;
         
         unsigned int totlength = 0;
         for(int i=0;i<nboards;i++) {
-            int length_i = fDGH.nchannels[i]*fDGH.nsamples[i]*fDGH.nwaveforms[i];
+            int length_i = fDGH->nchannels[i]*fDGH->nsamples[i]*fDGH->nwaveforms[i];
             totlength += length_i;
         }
         if(totlength!=rawwaveforms.size()) {
@@ -212,26 +170,39 @@ namespace cygnolib {
         
         
         for(int i=0;i<nboards;i++) {
-            int length_i = fDGH.nchannels[i]*fDGH.nsamples[i]*fDGH.nwaveforms[i];
-            std::vector<uint16_t> rawwaveforms_i;
+            int length_i = fDGH->nchannels[i]*fDGH->nsamples[i]*fDGH->nwaveforms[i];
+            std::vector<uint16_t> rawwaveforms_i(length_i, 0);
             for(int j=0; j<length_i; j++) {
-                rawwaveforms_i.push_back(rawwaveforms[baseidx+j]);
+                rawwaveforms_i[j]=rawwaveforms[baseidx+j];
             }
             baseidx += length_i;
             
-            Board board_i(fDGH, rawwaveforms_i, fDGH.board_model[i]);
+            std::vector<std::vector<std::vector<uint16_t>>> tmp(fDGH->nwaveforms[i],
+                                                            std::vector<std::vector<uint16_t>>(fDGH->nchannels[i], 
+                                                            std::vector<uint16_t>(fDGH->nsamples[i], 0)
+                                                            )
+                                                           );
             
-            data.push_back(board_i);
+            for(int evt=0; evt<fDGH->nwaveforms[i]; evt++) {
+                for (int ch=0; ch<fDGH->nchannels[i]; ch++) {
+                    for (int samp=0; samp<fDGH->nsamples[i]; samp++) {
+                        int index = evt*fDGH->nchannels[i]*fDGH->nsamples[i] + ch*fDGH->nsamples[i] + samp;
+                        tmp[evt][ch][samp] = rawwaveforms_i[index];
+                    }
+                }
+            }
+            
+            data.push_back(tmp);
         }
     }
     PMTData::~PMTData(){
     }
     std::vector<std::vector<std::vector<uint16_t>>> PMTData::GetWaveforms(int board_model) {
-        int nboards = fDGH.nboards;
+        int nboards = fDGH->nboards;
         bool board_found = false;
         int board_index = -1;
         for(int i=0;i<nboards;i++) {
-            if(board_model==fDGH.board_model[i]) {
+            if(board_model==fDGH->board_model[i]) {
                 board_found = true;
                 board_index = i;
             }
@@ -246,7 +217,7 @@ namespace cygnolib {
         auto data_front = data.begin();
         std::advance(data_front, board_index);
         
-        return (*data_front).GetData();
+        return (*data_front);
     }
     
     
@@ -480,7 +451,7 @@ namespace cygnolib {
         return DGH;
     }
     
-    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader DGH) {
+    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader *DGH) {
         std::string bname="DIG0";
         int bankLength = 0;
         int bankType = 0;
