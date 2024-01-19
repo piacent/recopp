@@ -19,14 +19,14 @@
 
 namespace cygnolib {
     
-    Picture::Picture(int height, int width): nrows(height), ncolumns(width), frame(height, std::vector<uint16_t>(width,0)) {
+    Picture::Picture(unsigned int height, unsigned int width): nrows(height), ncolumns(width), frame(height, std::vector<uint16_t>(width,0)) {
     }
     Picture::~Picture(){
     }
-    int Picture::GetNRows(){
+    unsigned int Picture::GetNRows(){
         return nrows;
     }
-    int Picture::GetNColumns(){
+    unsigned int Picture::GetNColumns(){
         return ncolumns;
     }
     std::vector<std::vector<uint16_t>> Picture::GetFrame(){
@@ -51,8 +51,8 @@ namespace cygnolib {
     void Picture::SavePng(std::string filename, int vmin, int vmax) {
         cv::Mat mat;
         mat.create(nrows, ncolumns, CV_16U); 
-        for (int r = 0; r < nrows; ++r) {
-            for (int c = 0; c < ncolumns; ++c) {
+        for (unsigned int r = 0; r < nrows; ++r) {
+            for (unsigned int c = 0; c < ncolumns; ++c) {
                 uint16_t tmp = frame[r][c];
                 if (tmp<vmin) tmp = vmin;
                 else if (tmp>vmax) tmp = vmax;
@@ -86,9 +86,9 @@ namespace cygnolib {
             sampling_rate.push_back(rawheader[baseidx+5]);
             
             
-            if(rawheader.size()<baseidx+6+nchannels[i]+2*nwaveforms[i] && board_model[i] ==1742) {
+            if((int)rawheader.size()<baseidx+6+nchannels[i]+2*nwaveforms[i] && board_model[i] ==1742) {
                 throw std::runtime_error("cygnolib::DGHeader::DGHeader: corrupted.");
-            } else if(rawheader.size()<baseidx+6+nchannels[i]+nwaveforms[i] && board_model[i] ==1720) {
+                } else if((int)rawheader.size()<baseidx+6+nchannels[i]+nwaveforms[i] && board_model[i] ==1720) {
                 throw std::runtime_error("cygnolib::DGHeader::DGHeader: corrupted.");
             }
             
@@ -121,9 +121,9 @@ namespace cygnolib {
     DGHeader::~DGHeader(){
     }
     void DGHeader::Print() {
-        nboards;
+        
         std::cout<<"=========================="<<std::endl;
-        for(unsigned int i=0;i<nboards;i++){
+        for(int i=0;i<nboards;i++){
             std::cout<<"Board # "<<i<<std::endl;
             std::cout<<"model:     "<<board_model[i]<<std::endl;
             std::cout<<"length:    "<<nsamples[i]<<std::endl;
@@ -221,125 +221,6 @@ namespace cygnolib {
     }
     
     
-    void foo(){
-        std::cout<<"Hello inside"<<std::endl;
-        
-        std::string filename="/data11/cygno/piacenst/stefano/cygnocpp/debug/run35138.mid.gz";
-        
-        std::string bname="CAM0";
-        
-        int counter = 0;
-        MVOdb* odb = NULL;
-        MVOdbError odberror;
-        
-        TMReaderInterface* reader = TMNewReader(filename.c_str());
-        if (reader->fError) {
-            std::cout<<"Cannot open input file "<<filename.c_str()<<std::endl;
-            delete reader;
-        }
-        
-        
-        while (1) {
-            //TMEvent* e = TMReadEvent(reader);
-            TMidasEvent event = TMidasEvent();
-            bool reading = TMReadEvent(reader, &event);
-            
-            if (!reading) {
-                // EOF
-                std::cout<<"EOF reached."<<std::endl;
-                break;
-            }
-            
-            /*printf("Event: id 0x%04x, mask 0x%04x, serial 0x%08x, time 0x%08x, data size %d\n",
-                   event.GetEventId(),
-                   event.GetTriggerMask(),
-                   event.GetSerialNumber(),
-                   event.GetTimeStamp(),
-                   event.GetDataSize()
-                  );*/
-            
-            
-            if ((event.GetEventId() & 0xFFFF) == 0x8000) {
-                printf("Event: this is a begin of run ODB dump\n");
-                odb = MakeFileDumpOdb(event.GetData(),event.GetDataSize(), &odberror);
-                continue;
-            } else if ((event.GetEventId() & 0xFFFF) == 0x8001) {
-                printf("Event: this is an end of run ODB dump\n");
-                odb = MakeFileDumpOdb(event.GetData(),event.GetDataSize(), &odberror);
-                continue;
-            }
-
-            //
-            int N = event.SetBankList();
-            /*for (int i = 0; i < N * 4; i += 4) {
-                int bankLength = 0;
-                int bankType = 0;
-                void *pdata = 0;
-                int found = event.FindBank(&(event.GetBankList()[i]), &bankLength, &bankType, &pdata);
-                printf("Bank %c%c%c%c, length %6d, type %2d\n",
-                       event.GetBankList()[i],
-                       event.GetBankList()[i+1],
-                       event.GetBankList()[i+2],
-                       event.GetBankList()[i+3],
-                       bankLength,
-                       bankType
-                      );
-            }*/
-//             for (int i = 0; i < N * 4; i += 4) {
-            int bankLength = 0;
-            int bankType = 0;
-            void *pdata = 0;
-            int found = event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
-            uint16_t *pdatacast = (uint16_t *)pdata; //recast to bank type to increment
-            
-            date::sys_seconds tp{std::chrono::seconds{event.GetTimeStamp()}};
-            std::string s = date::format("%Y-%m-%d %I:%M:%S %p", tp);
-            std::uint32_t banksize = event.GetDataSize();
-            
-            int rows     = 2304;
-            int columns  = 2304;
-            
-            std::vector<std::vector<uint16_t>> frame(rows, std::vector<uint16_t>(columns,0)); 
-            
-            if(found) {
-                std::cout<<"FOUND "<<bname<<" bank"<<std::endl;
-                std::cout<<"Event: id "<<event.GetEventId()<<std::endl
-                         <<"     mask "<<event.GetTriggerMask()<<std::endl
-                         <<"   serial "<<event.GetSerialNumber()<<std::endl
-                         <<"     time "<<s<<std::endl
-                         <<" datasize "<<banksize<<std::endl
-                         <<std::endl;
-                
-                std::cout<<"Pixels = "<<sqrt(bankLength)<<std::endl;
-                
-                if(event.GetSerialNumber() == 0){
-                    for(int i=0; i<rows; i++) {
-                        for (int j=0; j<columns;j++) {
-                            frame[i][j] = *pdatacast;
-                            *pdatacast++;
-                        }
-                    }
-                    
-                    std::cout<<frame[0][0]<<","<<frame[0][1]<<","<<frame[0][2]<<","<<std::endl;
-                    std::cout<<frame[1][0]<<","<<frame[1][1]<<","<<frame[1][2]<<","<<std::endl;
-                    std::cout<<frame[2][0]<<","<<frame[2][1]<<","<<frame[2][2]<<","<<std::endl;
-                }
-                
-                
-            }
-            
-            
-            
-            
-            counter++;
-         }
-         
-         reader->Close();
-         delete reader;
-    } 
-    
-    
-    
     TMReaderInterface* OpenMidasFile(std::string filename) {
         TMReaderInterface* reader = TMNewReader(filename.c_str());
         if (reader->fError) {
@@ -371,11 +252,11 @@ namespace cygnolib {
             return false;
         }
         
-        int N = event.SetBankList();
+        event.SetBankList();
         int bankLength = 0;
         int bankType = 0;
         void *pdata = 0;
-        bool found = event.FindBank("CAM0", &bankLength, &bankType, &pdata);
+        bool found = event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
         return found;
     }
     
@@ -420,13 +301,13 @@ namespace cygnolib {
         int bankLength = 0;
         int bankType = 0;
         void *pdata = 0;
-        int found = event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
+        event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
         uint16_t *pdatacast = (uint16_t *)pdata; //recast to bank type to increment
         std::vector<std::vector<uint16_t>> frame(rows, std::vector<uint16_t>(columns,0)); 
         for(int i=0; i<rows; i++) {
             for (int j=0; j<columns;j++) {
                 frame[i][j] = *pdatacast;
-                *pdatacast++;
+                pdatacast++;
             }
         }
         pic.SetFrame(frame);
@@ -438,13 +319,13 @@ namespace cygnolib {
         int bankLength = 0;
         int bankType = 0;
         void *pdata = 0;
-        int found = event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
+        event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
         uint32_t *pdatacast = (uint32_t *)pdata; //recast to bank type to increment
         
         std::vector<uint32_t> v(bankLength, 0);
         for (int i=0; i<bankLength; i++) {
             v[i] = *pdatacast;
-            *pdatacast++;
+            pdatacast++;
         }
         
         DGHeader DGH(v);
@@ -456,13 +337,13 @@ namespace cygnolib {
         int bankLength = 0;
         int bankType = 0;
         void *pdata = 0;
-        int found = event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
+        event.FindBank(bname.c_str(), &bankLength, &bankType, &pdata);
         uint16_t *pdatacast = (uint16_t *)pdata; //recast to bank type to increment
         
         std::vector<uint16_t> v(bankLength, 0);
         for (int i=0; i<bankLength; i++) {
             v[i] = *pdatacast;
-            *pdatacast++;
+            pdatacast++;
         }
         //return v;
         

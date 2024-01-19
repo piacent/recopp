@@ -47,7 +47,7 @@ int main() {
                 
                 std::vector<std::vector<std::vector<uint16_t>>> fastwfs = pmts.GetWaveforms(1742);
                 std::vector<std::vector<std::vector<uint16_t>>> slowwfs = pmts.GetWaveforms(1720);
-                int kk =0;
+                
                 std::cout<<"====== fast ====="<<std::endl;
                 int ev = 0;
                 int ch = 1;
