@@ -155,7 +155,7 @@ namespace cygnolib {
     }
     
     
-    PMTData::PMTData(DGHeader *DGH, std::vector<uint16_t> rawwaveforms): fDGH(DGH){
+    PMTData::PMTData(DGHeader *DGH, std::vector<uint16_t> rawwaveforms): fDGH(DGH), fCorrected(false) {
         int nboards = fDGH->nboards;
         
         int baseidx = 0;
@@ -199,6 +199,10 @@ namespace cygnolib {
     PMTData::~PMTData(){
     }
     std::vector<std::vector<std::vector<uint16_t>>> *PMTData::GetWaveforms(int board_model) {
+        if(board_model == 1742 && !fCorrected && !fCorrecting) {
+            std::cout<<"WARNING: PMTData::GetWaveforms: Getting uncorrected raw data!"<<std::endl;
+        }
+        
         int nboards = fDGH->nboards;
         bool board_found = false;
         int board_index = -1;
@@ -325,6 +329,14 @@ namespace cygnolib {
     void PMTData::ApplyDRS4Corrections(std::vector<float> *channel_offsets,
                                        std::vector<std::vector<int>> *table_cell,
                                        std::vector<std::vector<int>> *table_nsample) {
+        
+        if(fCorrected) {
+            std::cout<<"WARNING: PMTData::ApplyDRS4Corrections:: correction not applied, wfs already corrected"<<std::endl;
+            return;
+        }
+        
+        fCorrecting = true;
+        
         int nboards = fDGH->nboards;
         bool board_found = false;
         int board_index = -1;
@@ -361,6 +373,8 @@ namespace cygnolib {
             PeakCorrection((*fastwfs)[evt]);
         }
         
+        fCorrected = true;
+        fCorrecting = false;
     }
     
     

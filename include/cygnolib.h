@@ -78,9 +78,12 @@ namespace cygnolib {
         
         void PeakCorrection(std::vector<std::vector<uint16_t>> &wfs);
         
-        //// add automatic correction if not corrected??
     private:
         DGHeader *fDGH;
+        bool fCorrected;
+        
+        bool fCorrecting = false;
+        
     };
     
     
