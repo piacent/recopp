@@ -18,8 +18,23 @@ int main() {
     
     //reading PMT readout infos from midas file
     std::vector<float> channels_offsets;
+    std::vector<std::vector<int>>    table_cell;
+    std::vector<std::vector<int>> table_nsample;
     bool correction;
-    cygnolib::InitializePMTReadout(filename, &correction, &channels_offsets);
+    cygnolib::InitializePMTReadout(filename, &correction, &channels_offsets, "LNGS", table_cell, table_nsample);
+    
+    // Print cells
+    /*std::cout<<" ==== cell ==== "<<std::endl;
+    std::cout<<" ==== "<<table_cell.size()<<" x "<<table_cell[0].size()<<std::endl;
+    std::cout<<" ==== "<<table_cell[0][0]<<", "<<table_cell[0][1]<<", "<<table_cell[0][2]<<", ..."<<std::endl;
+    std::cout<<" ==== "<<table_cell[1][0]<<", "<<table_cell[1][1]<<", "<<table_cell[1][2]<<", ..."<<std::endl;
+    std::cout<<" ==== "<<table_cell[2][0]<<", "<<table_cell[2][1]<<", "<<table_cell[2][2]<<", ..."<<std::endl;
+    std::cout<<" ==== sample ==== "<<std::endl;
+    std::cout<<" ==== "<<table_nsample.size()<<" x "<<table_nsample[0].size()<<std::endl;
+    std::cout<<" ==== "<<table_nsample[0][0]<<", "<<table_nsample[0][1]<<", "<<table_nsample[0][2]<<", ..."<<std::endl;
+    std::cout<<" ==== "<<table_nsample[1][0]<<", "<<table_nsample[1][1]<<", "<<table_nsample[1][2]<<", ..."<<std::endl;
+    std::cout<<" ==== "<<table_nsample[2][0]<<", "<<table_nsample[2][1]<<", "<<table_nsample[2][2]<<", ..."<<std::endl;*/
+    
     
     //reading data from midas file
     TMReaderInterface* reader = cygnolib::OpenMidasFile(filename);
@@ -32,12 +47,11 @@ int main() {
     while (reading) {
         
         auto start0 = std::chrono::high_resolution_clock::now();
-        std::cout<<"Reading evt "<<counter<<std::endl;
+        if(debug) std::cout<<"Reading evt "<<counter<<std::endl;
         TMidasEvent event = TMidasEvent();
         reading = TMReadEvent(reader, &event);
         if (!reading) {
-            // EOF
-            std::cout<<"EOF reached."<<std::endl;
+            if(debug) std::cout<<"EOF reached."<<std::endl;
             break;
         }
         
@@ -60,9 +74,12 @@ int main() {
             if(dig_found) {
                 //std::cout<<"DIG0 bank found"<<std::endl;
                 cygnolib::PMTData pmts = daq_dig2PMTData(event, &dgh);
+                pmts.ApplyDRS4Corrections(&channels_offsets, &table_cell, &table_nsample);
+                
                 
                 std::vector<std::vector<std::vector<uint16_t>>> *fastwfs = pmts.GetWaveforms(1742);
                 std::vector<std::vector<std::vector<uint16_t>>> *slowwfs = pmts.GetWaveforms(1720);
+                
                 
                 bool print = false;
                 if(print) {

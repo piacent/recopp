@@ -72,8 +72,13 @@ namespace cygnolib {
         
         std::vector<std::vector<std::vector<uint16_t>>> *GetWaveforms(int board_model);
         
-        //void ApplyDRS4Corrections(std::vector<float> *channels_offsets);
+        void ApplyDRS4Corrections(std::vector<float> *channels_offsets,
+                                  std::vector<std::vector<int>> *table_cell,
+                                  std::vector<std::vector<int>> *table_nsample);
         
+        void PeakCorrection(std::vector<std::vector<uint16_t>> &wfs);
+        
+        //// add automatic correction if not corrected??
     private:
         DGHeader *fDGH;
     };
@@ -86,7 +91,14 @@ namespace cygnolib {
     bool FindODBDumpBOR(TMidasEvent &event, bool verbose = false);
     MVOdb* GetODBDumpBOR(TMidasEvent &event,  MVOdbError *odberror = NULL);
     
-    void InitializePMTReadout(std::string filename, bool *DRS4correction, std::vector<float> *channels_offsets);
+    void InitializePMTReadout(std::string filename,
+                              bool *DRS4correction, 
+                              std::vector<float> *channels_offsets,
+                              std::string tag,
+                              std::vector<std::vector<int>> &table_cell,
+                              std::vector<std::vector<int>> &table_nsample
+                             );
+    
     // implementazione correzione to-do
     Picture  daq_cam2pic(TMidasEvent &event, std::string cam_model = "fusion");
     DGHeader daq_dgh2head(TMidasEvent &event);

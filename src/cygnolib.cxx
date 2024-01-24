@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <opencv2/imgcodecs.hpp>
 #include <list>
+#include <cstdlib>
 
 
 namespace cygnolib {
@@ -219,6 +220,148 @@ namespace cygnolib {
         
         return &(*data_front);
     }
+    void PMTData::PeakCorrection(std::vector<std::vector<uint16_t>> &wfs) {
+        unsigned int NS = 1024; //hardcoded!!! Valid only for V1742
+        unsigned int Nch = 8;
+        std::vector<double> avgs(Nch, 0.0);
+        for(unsigned int ch=0; ch<Nch; ch++){
+            avgs[ch] = std::accumulate(wfs[ch].begin(), wfs[ch].end(), 0.0) / NS; // averages of each channel 
+        }
+        for(unsigned int i =1; i<NS; i++) {
+            int offset      = 0;
+            int offset_plus = 0;
+            
+            for(unsigned int ch=0; ch<Nch; ch++){
+                if(i ==1) {                          
+                    if ((wfs[ch][2] - wfs[ch][1])>30) {
+                        offset += 1;
+                    } else {
+                        if ((wfs[ch][3]-wfs[ch][1])>30 && (wfs[ch][3]-wfs[ch][2])>30) {
+                            offset += 1;
+                        }
+                    }
+                } else {
+                    if (i == (NS-1) && (wfs[ch][NS-2] - wfs[ch][NS-1])>30) {
+                        offset+=1;
+                    } else {
+                        if ((wfs[ch][i-1]-wfs[ch][i])>30) {
+                            if ((wfs[ch][i+1] - wfs[ch][i])>30) {
+                                offset += 1;
+                            } else if ((i+2)<NS-2) {
+                                if ((wfs[ch][i+2] - wfs[ch][i])>30 && (wfs[ch][i+1] - wfs[ch][i])<5) {
+                                    offset += 1;
+                                }
+                            } else {
+                                if (i == (NS-2) || (wfs[ch][i+2]-wfs[ch][i])>30) {
+                                    offset += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if ((i < (NS-6))                  &&
+                    (avgs[ch] - wfs[ch][i])  <-30 &&
+                    (avgs[ch] - wfs[ch][i+1])<-30 &&
+                    (avgs[ch] - wfs[ch][i+2])<-30 &&
+                    (avgs[ch] - wfs[ch][i+3])<-30 &&
+                    (avgs[ch] - wfs[ch][i+4])<-30 &&
+                    (avgs[ch] - wfs[ch][i+5])<-30 ) {
+                    
+                    offset_plus += 1;
+                }
+            }
+            
+            
+            if (offset >= 7) { // 7 instead of 8 !!!!
+                
+                for(unsigned int ch=0; ch<Nch; ch++){
+                    if (i ==1) {
+                        if ((wfs[ch][2] - wfs[ch][1])>30){
+                            wfs[ch][0] = wfs[ch][2];
+                            wfs[ch][1] = wfs[ch][2];
+                        } else {
+                            wfs[ch][0] = wfs[ch][3];
+                            wfs[ch][1] = wfs[ch][3];
+                            wfs[ch][2] = wfs[ch][3];
+                        }
+                    } else {
+                        if (i == (NS-1)) {
+                            wfs[ch][NS-1] = wfs[ch][NS-2];
+                        } else {
+                            if ((wfs[ch][i+1]-wfs[ch][i])>30) {
+                                if ((wfs[ch][i+1] - wfs[ch][i])>30) {
+                                    wfs[ch][i]   =  int((wfs[ch][i+1]+ wfs[ch][i-1])/2);
+                                } else if ((i+2)<NS-2) {
+                                    if ((wfs[ch][i+2] - wfs[ch][i])>30 && (wfs[ch][i+1] - wfs[ch][i])<5){
+                                        wfs[ch][i]   =  int((wfs[ch][i+2]+ wfs[ch][i-1])/2);
+                                        wfs[ch][i+1] =  int((wfs[ch][i+2]+ wfs[ch][i-1])/2);
+                                    }
+                                }
+                            } else {
+                                if (i == (NS-2)){
+                                    wfs[ch][NS-2] = wfs[ch][NS-3];
+                                    wfs[ch][NS-2] = wfs[ch][NS-1-3];                 
+                                } else {
+                                    wfs[ch][i]   = int((wfs[ch][i+2]+wfs[ch][i-1])/2);
+                                    wfs[ch][i+1] = int((wfs[ch][i+2]+wfs[ch][i-1])/2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+            if (offset_plus>=7) {  // 7 instead of 8 !!!!
+                for(unsigned int ch=0; ch<Nch; ch++){
+                    for(unsigned int m=0; m<6; m++){
+                        wfs[ch][i+m] = avgs[ch];
+                    }
+                }
+            }
+        }
+    }  
+    void PMTData::ApplyDRS4Corrections(std::vector<float> *channel_offsets,
+                                       std::vector<std::vector<int>> *table_cell,
+                                       std::vector<std::vector<int>> *table_nsample) {
+        int nboards = fDGH->nboards;
+        bool board_found = false;
+        int board_index = -1;
+        for(int i=0;i<nboards;i++) {
+            if(1742==fDGH->board_model[i]) {
+                board_found = true;
+                board_index = i;
+            }
+        }
+        if(!board_found) {
+            throw std::runtime_error("cygnolib::PMTData::ApplyDRS4Corrections: board model"+
+                                     std::to_string(1742)+
+                                     " not found."
+                                    );
+        }
+        
+        std::vector<std::vector<std::vector<uint16_t>>> *fastwfs = GetWaveforms(1742);
+        
+        for (unsigned int evt=0; evt < fastwfs->size(); evt++) {
+            int SIC = fDGH->SIC[board_index][evt];
+            
+            for(unsigned int ch=0; ch<8; ch++) { //only first 8 channels - hard coded
+                if((*channel_offsets)[ch]>-0.35 && (*channel_offsets)[ch]<-0.25){
+                    std::vector<uint16_t> tmp((*fastwfs)[evt][ch]);
+                    for(unsigned int samp=0; samp<1024; samp++) {
+                        int sic_index = (samp+SIC)%1024;
+                        tmp[samp]    -= (*table_cell)[ch][sic_index];
+                        tmp[samp]    -= (*table_nsample)[ch][samp];
+                    }
+                    (*fastwfs)[evt][ch]=tmp;
+                }
+            }
+            
+            PeakCorrection((*fastwfs)[evt]);
+        }
+        
+    }
     
     
     TMReaderInterface* OpenMidasFile(std::string filename) {
@@ -262,7 +405,58 @@ namespace cygnolib {
     
     
     
-    void InitializePMTReadout(std::string filename, bool *DRS4correction, std::vector<float> *channels_offsets) {
+    void InitializePMTReadout(std::string filename,
+                              bool *DRS4correction,
+                              std::vector<float> *channels_offsets,
+                              std::string tag,
+                              std::vector<std::vector<int>> &table_cell,
+                              std::vector<std::vector<int>> &table_nsample) {
+        
+        std::string filepath(getenv("RECOPPSYS"));
+        
+        if(tag!="LNGS" && tag!="LNF") {
+            throw std::runtime_error("cygnolib::InitializePMTReadout: unknown tag "+tag+".\n");
+        }
+        
+        std::string    table_cell_filename(filepath+"/input/table_cell_"   +tag+".txt");
+        std::string table_nsample_filename(filepath+"/input/table_nsample_"+tag+".txt");
+        std::string x;
+        
+        
+        
+        std::ifstream inFile;
+        inFile.open(table_cell_filename);
+        
+        std::vector<std::vector<int>> ftable(8, std::vector<int>(1024, 0));
+        int counter=0;
+        while (!inFile.eof()) {
+            std::vector<int> line_tmp(1024, 0);
+            
+            for(unsigned int i=0; i<1024; i++) {
+                inFile>> x;
+                line_tmp[i] = std::stoi(x);
+            }
+            if(counter<(int)ftable.size()) ftable[counter]=line_tmp;
+            counter++;
+        }
+        inFile.close();
+        table_cell = ftable;
+        
+        inFile.open(table_nsample_filename);
+        std::vector<std::vector<int>> ftable2(8, std::vector<int>(1024, 0));
+        counter=0;
+        while (!inFile.eof()) {
+            std::vector<int> line_tmp(1024, 0);
+            for(unsigned int i=0; i<1024; i++) {
+                inFile>> x;
+                line_tmp[i] = std::stoi(x);
+            }
+            if(counter<(int)ftable2.size()) ftable2[counter]=line_tmp;
+            counter++;
+        }
+        inFile.close();
+        table_nsample = ftable2;
+        
         TMReaderInterface* reader = cygnolib::OpenMidasFile(filename);
 
         bool reading = true;
