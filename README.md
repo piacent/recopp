@@ -26,3 +26,8 @@ Before compiling, set the variables `ROOTANASYS` and `OPENCVSYS` in your environ
 
 `cmake --build .`
 
+Generate documentation inside the `doc/html` folder:
+
+`doxygen doc/doxygen.cfg`
+
+Documentation should be then available at `doc/html/index.html.`.

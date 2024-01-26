@@ -33,3 +33,5 @@
 
 build-dir
 debug
+doc/html
+doc/latex
