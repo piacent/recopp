@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2024 CYGNO Collaboration
+ *
+ *
+ * Author: Stefano Piacentini
+ * Created in 2024
+ *
+ */
+
 #include "cygnolib.h"
 #include "midasio.h"
 #include "mvodb.h"
@@ -16,6 +25,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <list>
 #include <cstdlib>
+#include <numeric>
 
 
 namespace cygnolib {

@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.14)
-set(CMAKE_CXX_STANDARD 17)
+cmake_minimum_required(VERSION 3.17)
+project(cygnoana VERSION 0.0.1)
 
 add_compile_options(-Wall -Wextra -O3)
 
-project(cygnoana VERSION 0.0.1)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 link_directories("$ENV{ROOTANASYS}/lib"
@@ -11,7 +12,7 @@ link_directories("$ENV{ROOTANASYS}/lib"
                 )
 
 add_executable(cygnoana "${PROJECT_SOURCE_DIR}/main.cxx")
-target_link_libraries(cygnoana PUBLIC cygnolib s3 rootana z opencv_imgcodecs opencv_core)
+target_link_libraries(cygnoana PUBLIC cygnolib s3 rootana z opencv_imgcodecs opencv_core curl stdc++fs)
 
 
 # -------- cygnolib --------

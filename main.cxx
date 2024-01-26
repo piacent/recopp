@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2024 CYGNO Collaboration
+ *
+ *
+ * Author: Stefano Piacentini
+ * Created in 2024
+ *
+ */
+
 #include "cygnolib.h"
 #include <iostream>
 #include "s3.h"
@@ -5,16 +14,17 @@
 #include <stdexcept>
 #include <chrono>
 
-// Appunti:
-// classe evento
-// immagine solo pixel del cluster + wfs connesse
-
 int main() {
     
-    bool debug = true;
+    bool debug   = true;
+    bool verbose = true;
+    bool cloud   = true;
     
-    //open midas file
-    std::string filename="/home/piacenst/cygno_workspace/stefano/recopp/debug/run35138.mid.gz";
+    int run = 35138;
+    
+    //Download or find midas file
+    std::string filename = s3::cache_file(s3::mid_file(run, "LNGS", cloud, verbose), "./tmp/", cloud, "LNGS", verbose);
+    
     
     //reading PMT readout infos from midas file
     std::vector<float> channels_offsets;
@@ -25,6 +35,7 @@ int main() {
     
     
     //reading data from midas file
+    std::cout<<"Opening midas file "<<filename<<" ..."<<std::endl;
     TMReaderInterface* reader = cygnolib::OpenMidasFile(filename);
     bool reading = true;
     
@@ -47,9 +58,11 @@ int main() {
         bool dgh_found = cygnolib::FindBankByName(event, "DGH0");
         bool dig_found = cygnolib::FindBankByName(event, "DIG0");
         
-        auto stop0 = std::chrono::high_resolution_clock::now();
-        auto duration0 = std::chrono::duration_cast<std::chrono::milliseconds>(stop0 - start0);
-        if(debug) std::cout<<">> TIME TO READ MIDASEVENT "<< duration0.count()<<" ms"<<std::endl;
+        if(debug) {
+            auto stop0 = std::chrono::high_resolution_clock::now();
+            auto duration0 = std::chrono::duration_cast<std::chrono::milliseconds>(stop0 - start0);
+            std::cout<<">> TIME TO READ MIDASEVENT "<< duration0.count()<<" ms"<<std::endl;
+        }
         
         if(dgh_found) {
             auto start = std::chrono::high_resolution_clock::now();
@@ -86,9 +99,11 @@ int main() {
                 
             }
             
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            if(debug) std::cout<<">> TIME TO INIT DGH0 AND DIG0 "<< duration.count()<<" ms"<<std::endl;
+            if(debug) {
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+                std::cout<<">> TIME TO INIT DGH0 AND DIG0 "<< duration.count()<<" ms"<<std::endl;
+            }
         }
         
         if(cam_found) {
@@ -97,9 +112,11 @@ int main() {
             //pic.Print(4,4); // print upper left 4x4 angle
             //pic.SavePng("/data11/cygno/piacenst/stefano/cygnocpp/debug/test.png");
             
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            if(debug) std::cout<<">> TIME TO INIT CAM0 "<< duration.count()<<" ms"<<std::endl;
+            if(debug) {
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+                std::cout<<">> TIME TO INIT CAM0 "<< duration.count()<<" ms"<<std::endl;
+            }
         }
         
         counter ++;
@@ -108,9 +125,12 @@ int main() {
     
     reader->Close();
     delete reader;
-    auto stop00 = std::chrono::high_resolution_clock::now();
-    auto duration00 = std::chrono::duration_cast<std::chrono::milliseconds>(stop00 - start00);
-    if(debug) std::cout<<">> TIME TO READ ALL MIDAS FILE "<< duration00.count()<<" ms"<<std::endl;
+    
+    if(debug) {
+        auto stop00 = std::chrono::high_resolution_clock::now();
+        auto duration00 = std::chrono::duration_cast<std::chrono::milliseconds>(stop00 - start00);
+        std::cout<<">> TIME TO READ ALL MIDAS FILE "<< duration00.count()<<" ms"<<std::endl;
+    }
     
     return 0;
 }

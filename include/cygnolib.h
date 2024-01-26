@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2024 CYGNO Collaboration
+ *
+ *
+ * Author: Stefano Piacentini
+ * Created in 2024
+ *
+ */
+
 #ifndef __CYGNO_LIB_H__
 #define __CYGNO_LIB_H__
 
@@ -16,6 +25,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <list>
+#include <numeric>
 
 namespace cygnolib {
     
