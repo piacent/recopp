@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2024 CYGNO Collaboration
+ *
+ *
+ * Author: Stefano Piacentini
+ * Created in 2024
+ *
+ */
+
 #ifndef __CYGNO_LIB_H__
 #define __CYGNO_LIB_H__
 
@@ -16,25 +25,26 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <list>
+#include <numeric>
 
 namespace cygnolib {
     
     class Picture {
     public:
-        Picture(int height = 2304, int width = 2304);
+        Picture(unsigned int height = 2304, unsigned int width = 2304);
         ~Picture();
         
-        int GetNRows();
-        int GetNColumns();
+        unsigned int GetNRows();
+        unsigned int GetNColumns();
         std::vector<std::vector<uint16_t>> GetFrame();
         void SetFrame(std::vector<std::vector<uint16_t>> inputframe);
         void Print(int a, int b);
         void SavePng(std::string filename, int vmin = 99, int vmax = 130);
         
     private:
+        unsigned int nrows;
+        unsigned int ncolumns;
         std::vector<std::vector<uint16_t>> frame;
-        int nrows;
-        int ncolumns;
     };
     // Appunti:
     // Almeno C++17/C++20 , con i vector
@@ -62,46 +72,31 @@ namespace cygnolib {
         
     };
     
-    // ======= to decide =========
-    class Board {
-    public:
-        Board(DGHeader DGH, std::vector<uint16_t> rawwaveforms, int board_model);
-        ~Board();
-        
-        std::vector<std::vector<std::vector<uint16_t>>> GetData();
-        
-    private:
-        DGHeader fDGH;
-        int fboard_model;
-        int fnchannels;
-        int fnsamples;
-        int fnwaveforms;
-        //....
-        std::vector<std::vector<std::vector<uint16_t>>> fData;
-    
-    };
-    
     class PMTData {
     public:
         
-        PMTData(DGHeader DGH, std::vector<uint16_t> rawwaveforms);
+        PMTData(DGHeader *DGH, std::vector<uint16_t> rawwaveforms);
         ~PMTData();
         
-        static std::list<Board> data;
+        std::list<std::vector<std::vector<std::vector<uint16_t>>>> data;
         
-        std::vector<std::vector<std::vector<uint16_t>>> GetWaveforms(int board_model);
+        std::vector<std::vector<std::vector<uint16_t>>> *GetWaveforms(int board_model);
+        
+        void ApplyDRS4Corrections(std::vector<float> *channels_offsets,
+                                  std::vector<std::vector<int>> *table_cell,
+                                  std::vector<std::vector<int>> *table_nsample);
+        
+        void PeakCorrection(std::vector<std::vector<uint16_t>> &wfs);
         
     private:
-        DGHeader fDGH;
+        DGHeader *fDGH;
+        bool fCorrected;
+        
+        bool fCorrecting = false;
+        
     };
     
-    // Mettere insieme PMTData e Board --> togliere copia di DGH etc
     
-    
-    // ======= to decide =========
-    
-    
-    void foo();
     
     TMReaderInterface* OpenMidasFile(std::string filename);
     bool FindBankByName(TMidasEvent &event, std::string bname, bool verbose = false);
@@ -109,11 +104,18 @@ namespace cygnolib {
     bool FindODBDumpBOR(TMidasEvent &event, bool verbose = false);
     MVOdb* GetODBDumpBOR(TMidasEvent &event,  MVOdbError *odberror = NULL);
     
-    void InitializePMTReadout(std::string filename, bool *DRS4correction, std::vector<float> *channels_offsets);
+    void InitializePMTReadout(std::string filename,
+                              bool *DRS4correction, 
+                              std::vector<float> *channels_offsets,
+                              std::string tag,
+                              std::vector<std::vector<int>> &table_cell,
+                              std::vector<std::vector<int>> &table_nsample
+                             );
+    
     // implementazione correzione to-do
     Picture  daq_cam2pic(TMidasEvent &event, std::string cam_model = "fusion");
-    DGHeader daq_dgh2head(TMidasEvent &event); //Header
-    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader DGH);
+    DGHeader daq_dgh2head(TMidasEvent &event);
+    PMTData daq_dig2PMTData(TMidasEvent &event, DGHeader *DGH);
     
     
 }
